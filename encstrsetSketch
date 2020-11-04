@@ -1,0 +1,10 @@
+namespace {
+    unordered_map sets;
+    unsigned long lastID;
+    unsigned long obtainID();
+    const char* encrypt();
+    void prettyPrintEncrypted(const char* encrypted); // Prints <cypher "HEX HEX...">.
+    void prettyPrintSet(unsigned long id); // Prints <set #ID>.
+     
+    
+}
