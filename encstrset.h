@@ -3,7 +3,8 @@
 
 #ifdef __cplusplus
     #include <cstdlib>
-	extern "C" {
+    #include <iostream>
+extern "C" {
 		namespace jnp1 {
 #else
 	#include <stdbool.h>
