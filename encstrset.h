@@ -2,14 +2,10 @@
 #define ENCSTRSET_H
 
 #ifdef __cplusplus
-	#include <iostream>
-	#include <unordered_map>
-	#include <unordered_set>
-	#include <climits>
-	extern "C"
-	{
-		namespace jnp1
-		{
+    #include <cstdlib>
+    #include <iostream>
+extern "C" {
+		namespace jnp1 {
 #else
 	#include <stdbool.h>
 	#include <stdlib.h>
