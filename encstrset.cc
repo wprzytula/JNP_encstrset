@@ -5,8 +5,6 @@
 #include <climits>
 #include <cassert>
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #ifdef NDEBUG
     const bool debug = false;
 #else
@@ -15,14 +13,22 @@
 
 namespace {
     using encstrset = std::unordered_set<std::string>;
-    std::unordered_map<unsigned long, encstrset> sets;
 
-    // TODO: Podaje nastêpny numer id lub, je¿eli skoñczy siê zakres, szuka wolnego numeru.
+    std::unordered_map<unsigned long, encstrset>& sets() {
+        static std::unordered_map<unsigned long, encstrset> sets;
+        return sets;
+    }
+
+    std::ostream& cerr() {
+        std::ios_base::Init();
+        return std::cerr;
+    }
+
     unsigned long obtainID() {
         static unsigned long lastGiven = -1;
         unsigned long proposedID = lastGiven + 1;
         while (proposedID != lastGiven) {
-            if (sets.find(proposedID) == sets.end()) {
+            if (sets().find(proposedID) == sets().end()) {
                 lastGiven = proposedID;
                 return proposedID;
             }
@@ -31,13 +37,14 @@ namespace {
         assert(false); // the scarcely probable case that there already exist MAX_ULONG maps
     }
 
-    // Szyfruje value kluczem (niepustym) key.
+    //  Returns string containing <value> encrypted using <key>
+    //  if <key> is not NULL and not empty, else <value>.
     std::string encrypt(const char *value, const char *key) {
         assert(value != nullptr);
         std::string result;
         int posVal = 0;
         char currVal = value[posVal];
-        if (key == nullptr) {
+        if (key == nullptr || *key == '\0') {
             while (currVal != '\0') {
                 result += currVal;
                 currVal = value[++posVal];
@@ -59,7 +66,7 @@ namespace {
         return result;
     }
 
-    // Wypisuje encrypted w postaci "cypher "HEX HEX..."".
+    // Prints <encrypted> in form "cypher "HEX HEX..."".
     void printEncrypted(std::string encrypted) {
         size_t size = encrypted.size();
         std::cerr << "cypher \"";
@@ -72,7 +79,6 @@ namespace {
         std::cerr << '"';
     }
 
-    // Wypisuje id w postaci "set #id".
     void printSet(unsigned long id) {
         std::cerr << "set #" << id;
     }
@@ -134,7 +140,7 @@ extern "C" {
             std::cerr << __func__ << ": ";
         }
         unsigned long id = obtainID();
-        sets[id];
+        sets()[id];
         if (debug) {
             printSet(id);
             std::cerr << " created" << std::endl;
@@ -144,8 +150,8 @@ extern "C" {
 
     void encstrset_clear(unsigned long id) {
         printFunctionSelfInfo(id);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
+        auto it = sets().find(id);
+        if (it != sets().end()) {
             it->second.clear();
             if (debug) {
                 printSet(id);
@@ -158,9 +164,9 @@ extern "C" {
 
     void encstrset_delete(unsigned long id) {
         printFunctionSelfInfo(id);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
-            sets.erase(it);
+        auto it = sets().find(id);
+        if (it != sets().end()) {
+            sets().erase(it);
             if (debug) {
                 printSet(id);
                 std::cerr << " deleted" << std::endl;
@@ -172,8 +178,8 @@ extern "C" {
 
     size_t encstrset_size(unsigned long id) {
         printFunctionSelfInfo(id);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
+        auto it = sets().find(id);
+        if (it != sets().end()) {
             if (debug) {
                 printSet(id);
                 std::cerr << " contains " << it->second.size() << " element(s)"
@@ -192,19 +198,25 @@ extern "C" {
     bool encstrset_insert(unsigned long id, const char *value, const char *key) {
         printFunctionSelfInfo(id, value, key);
         initialValueCheck(value);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
+        auto it = sets().find(id);
+        if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
+            if (debug) {
+                printSet(id);
+                std::cerr << ", ";
+                printEncrypted(encrypted);
+            }
             if (it->second.find(encrypted) == it->second.end()) {
                 it->second.insert(encrypted);
                 if (debug) {
-                    printSet(id);
-                    std::cerr << ", ";
-                    printEncrypted(encrypted);
                     std::cerr << " inserted" << std::endl;
                 }
                 return true;
             }
+            if (debug) {
+                std::cerr << " was already present" << std::endl;
+            }
+            return false;
         }
         printDoesNotExist(id);
         return false;
@@ -213,19 +225,25 @@ extern "C" {
     bool encstrset_remove(unsigned long id, const char *value, const char *key) {
         printFunctionSelfInfo(id, value, key);
         initialValueCheck(value);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
+        auto it = sets().find(id);
+        if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
+            if (debug) {
+                printSet(id);
+                std::cerr << ", ";
+                printEncrypted(encrypted);
+            }
             if (it->second.find(encrypted) != it->second.end()) {
                 it->second.erase(encrypted);
                 if (debug) {
-                    printSet(id);
-                    std::cerr << ", ";
-                    printEncrypted(encrypted);
                     std::cerr << " removed" << std::endl;
                 }
                 return true;
             }
+            if (debug) {
+                std::cerr << " was not present" << std::endl;
+            }
+            return false;
         }
         printDoesNotExist(id);
         return false;
@@ -234,8 +252,8 @@ extern "C" {
     bool encstrset_test(unsigned long id, const char *value, const char *key) {
         printFunctionSelfInfo(id, value, key);
         initialValueCheck(value);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
+        auto it = sets().find(id);
+        if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
             if (debug) {
                 printSet(id);
@@ -259,12 +277,12 @@ extern "C" {
 
     void encstrset_copy(unsigned long srcId, unsigned long dstId) {
         printCallSpecs(srcId, dstId);
-        auto srcIt = sets.find(srcId), dstIt = sets.find(dstId);
-        if (srcIt == sets.end()) {
+        auto srcIt = sets().find(srcId), dstIt = sets().find(dstId);
+        if (srcIt == sets().end()) {
             std::cerr << __func__ << ": ";
             printDoesNotExist(srcId);
         }
-        else if (dstIt == sets.end()) {
+        else if (dstIt == sets().end()) {
             std::cerr << __func__ << ": ";
             printDoesNotExist(dstId);
         }
@@ -294,5 +312,3 @@ extern "C" {
         }
     }
 }
-
-#pragma clang diagnostic pop
