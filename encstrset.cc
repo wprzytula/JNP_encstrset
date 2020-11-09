@@ -5,6 +5,7 @@
 #include <climits>
 #include <cassert>
 #include <iostream>
+#include <iomanip>
 
 #ifdef NDEBUG
     const bool debug = false;
@@ -71,7 +72,7 @@ namespace {
         size_t size = encrypted.size();
         std::cerr << "cypher \"";
         for (size_t i = 0; i < size; i++) {
-            std::cerr << std::uppercase << std::hex << (int)encrypted[i];
+            std::cerr << std::setw(2) << std::setfill('0') << std::uppercase << std::hex << (int)encrypted[i];
             if (i + 1 < size) {
                 std::cerr << ' ';
             }
