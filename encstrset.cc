@@ -20,6 +20,7 @@ namespace {
         return sets;
     }
 
+    // Returns an unused ID number.
     unsigned long obtainID() {
         static unsigned long lastGiven = -1;
         unsigned long proposedID = lastGiven + 1;
@@ -30,7 +31,7 @@ namespace {
             }
             ++proposedID;
         }
-        assert(false); // the scarcely probable case that there already exist MAX_ULONG sets
+        assert(false); // The scarcely probable case that there already exist MAX_ULONG sets.
         return 0;
     }
 
@@ -78,9 +79,13 @@ namespace {
         std::cerr << '"';
     }
 
+    // Prints various amounts of arguments.
     void printArguments() {}
     void printArguments(unsigned long id) {
         std::cerr << id;
+    }
+    void printArguments(unsigned long id1, unsigned long id2) {
+        std::cerr << id1 << ", " << id2;
     }
     void printArguments(unsigned long id, const char *value, const char *key) {
         std::cerr << id << ", ";
@@ -98,12 +103,9 @@ namespace {
             std::cerr << '"' << key << '"';
         }
     }
-
-    void printArguments(unsigned long id1, unsigned long id2) {
-        std::cerr << id1 << ", " << id2;
-    }
 }
 
+// Macros for printing debug information.
 #define printFunctionSelfInfo() \
     if (debug) { \
         std::cerr << __func__ << ": "; \
@@ -185,7 +187,7 @@ namespace jnp1 {
         if (it != sets().end()) {
             sets().erase(it);
             printSetMessage(id, " deleted");
-        } printSetMessage(id, " does not exist");
+        } else printSetMessage(id, " does not exist");
     }
 
     size_t encstrset_size(unsigned long id) {
