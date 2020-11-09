@@ -19,11 +19,6 @@ namespace {
         return sets;
     }
 
-    std::ostream& cerr() {
-        std::ios_base::Init();
-        return std::cerr;
-    }
-
     unsigned long obtainID() {
         static unsigned long lastGiven = -1;
         unsigned long proposedID = lastGiven + 1;
@@ -34,21 +29,19 @@ namespace {
             }
             ++proposedID;
         }
-        assert(false); // the scarcely probable case that there already exist MAX_ULONG maps
+        assert(false); // the scarcely probable case that there already exist MAX_ULONG sets
     }
 
     //  Returns string containing <value> encrypted using <key>
     //  if <key> is not NULL and not empty, else <value>.
     std::string encrypt(const char *value, const char *key) {
-        assert(value != nullptr);
+        if (debug) {
+            assert(value != nullptr);
+        }
         std::string result;
         int posVal = 0;
         char currVal = value[posVal];
         if (key == nullptr || *key == '\0') {
-            while (currVal != '\0') {
-                result += currVal;
-                currVal = value[++posVal];
-            }
             return value;
         }
         int posKey = 0;
@@ -66,8 +59,13 @@ namespace {
         return result;
     }
 
+
+    void printSet(unsigned long id) {
+        std::cerr << "set #" << id;
+    }
+
     // Prints <encrypted> in form "cypher "HEX HEX..."".
-    void printEncrypted(std::string encrypted) {
+    void printEncrypted(const std::string& encrypted) {
         size_t size = encrypted.size();
         std::cerr << "cypher \"";
         for (size_t i = 0; i < size; i++) {
@@ -79,16 +77,7 @@ namespace {
         std::cerr << '"';
     }
 
-    void printSet(unsigned long id) {
-        std::cerr << "set #" << id;
-    }
-
-    void printDoesNotExist(unsigned long id) {
-        printSet(id);
-        std::cerr << " does not exist" << std::endl;
-    }
-
-    void printArguments(const char *) {}
+    void printArguments() {}
     void printArguments(unsigned long id) {
         std::cerr << id;
     }
@@ -115,36 +104,46 @@ namespace {
 }
 
 #define printFunctionSelfInfo(args...) \
-    if (debug) {\
-        printCallSpecs(args);\
-        std::cerr << __func__ << ": ";\
+    if (debug) { \
+        printCallSpecs(args); \
+        std::cerr << __func__ << ": "; \
     }
 
 #define initialValueCheck(value) \
-    if (value == nullptr) {\
-        if (debug) {\
-            std::cerr << "invalid value (NULL)" <<\
-            std::endl;\
-        }\
-    return false;\
+    if (value == nullptr) { \
+        if (debug) { \
+            std::cerr << "invalid value (NULL)" << \
+            std::endl; \
+        } \
+        return false; \
     }
 
-#define printCallSpecs(args...) std::cerr << __func__ << '(';\
-                                printArguments(args);\
-                                std::cerr << ')' << std::endl;
+#define printCallSpecs(args...) \
+    std::cerr << __func__ << '('; \
+    printArguments(args); \
+    std::cerr << ')' << std::endl;
 
-extern "C" {
+#define printSetMessage(id, message) \
+    if (debug) { \
+       printSet(id); \
+       std::cerr << message << std::endl; \
+    }
+
+#define printSetCipherMessage(id, cipher, message) \
+    if (debug) { \
+        printSet(id); \
+        std::cerr << ", "; \
+        printEncrypted(encrypted); \
+        std::cerr << message << std::endl; \
+    }
+
+
+namespace jnp1 {
     unsigned long encstrset_new() {
-        if (debug) {
-            printCallSpecs("");
-            std::cerr << __func__ << ": ";
-        }
+        printFunctionSelfInfo();
         unsigned long id = obtainID();
         sets()[id];
-        if (debug) {
-            printSet(id);
-            std::cerr << " created" << std::endl;
-        }
+        printSetMessage(id, " created");
         return id;
     }
 
@@ -153,13 +152,8 @@ extern "C" {
         auto it = sets().find(id);
         if (it != sets().end()) {
             it->second.clear();
-            if (debug) {
-                printSet(id);
-                std::cerr << " cleared" << std::endl;
-            }
-        } else if (debug) {
-            printDoesNotExist(id);
-        }
+            printSetMessage(id, " cleared");
+        } else printSetMessage(id, " does not exist");
     }
 
     void encstrset_delete(unsigned long id) {
@@ -167,13 +161,8 @@ extern "C" {
         auto it = sets().find(id);
         if (it != sets().end()) {
             sets().erase(it);
-            if (debug) {
-                printSet(id);
-                std::cerr << " deleted" << std::endl;
-            }
-        } else if (debug) {
-            printDoesNotExist(id);
-        }
+            printSetMessage(id, " deleted");
+        } printSetMessage(id, " does not exist");
     }
 
     size_t encstrset_size(unsigned long id) {
@@ -187,11 +176,8 @@ extern "C" {
             }
             return it->second.size();
         } else {
-            if (debug) {
-                printDoesNotExist(id);
-
-                return 0;
-            }
+            printSetMessage(id, " does not exist");
+            return 0;
         }
     }
 
@@ -201,24 +187,15 @@ extern "C" {
         auto it = sets().find(id);
         if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
-            if (debug) {
-                printSet(id);
-                std::cerr << ", ";
-                printEncrypted(encrypted);
-            }
             if (it->second.find(encrypted) == it->second.end()) {
                 it->second.insert(encrypted);
-                if (debug) {
-                    std::cerr << " inserted" << std::endl;
-                }
+                printSetCipherMessage(id, encrypted, " inserted");
                 return true;
             }
-            if (debug) {
-                std::cerr << " was already present" << std::endl;
-            }
+            printSetCipherMessage(id, encrypted, " was already present");
             return false;
         }
-        printDoesNotExist(id);
+        printSetMessage(id, " does not exist");
         return false;
     }
 
@@ -228,24 +205,15 @@ extern "C" {
         auto it = sets().find(id);
         if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
-            if (debug) {
-                printSet(id);
-                std::cerr << ", ";
-                printEncrypted(encrypted);
-            }
             if (it->second.find(encrypted) != it->second.end()) {
                 it->second.erase(encrypted);
-                if (debug) {
-                    std::cerr << " removed" << std::endl;
-                }
+                printSetCipherMessage(id, encrypted, " removed");
                 return true;
             }
-            if (debug) {
-                std::cerr << " was not present" << std::endl;
-            }
+            printSetCipherMessage(id, encrypted, " was not present");
             return false;
         }
-        printDoesNotExist(id);
+        printSetMessage(id, " does not exist");
         return false;
     }
 
@@ -271,24 +239,22 @@ extern "C" {
             }
             return false;
         }
-        printDoesNotExist(id);
+        printSetMessage(id, " does not exist");
         return false;
     }
 
     void encstrset_copy(unsigned long srcId, unsigned long dstId) {
-        printCallSpecs(srcId, dstId);
+        printFunctionSelfInfo()
         auto srcIt = sets().find(srcId), dstIt = sets().find(dstId);
         if (srcIt == sets().end()) {
-            std::cerr << __func__ << ": ";
-            printDoesNotExist(srcId);
+            printSetMessage(srcId, " does not exist");
         }
         else if (dstIt == sets().end()) {
-            std::cerr << __func__ << ": ";
-            printDoesNotExist(dstId);
+            printSetMessage(dstId, " does not exist");
         }
         else {
             for (auto it = srcIt->second.begin(); it != srcIt->second.end(); ++it) {
-                if (debug) {
+                if (debug && it != srcIt->second.begin()) {
                     std::cerr << __func__ << ": ";
                 }
                 if (dstIt->second.find(*it) == dstIt->second.end()) {

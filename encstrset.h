@@ -3,7 +3,9 @@
 
 #ifdef __cplusplus
     #include <cstdlib>
+#ifndef NDEBUG
     #include <iostream>
+#endif
 extern "C" {
 		namespace jnp1 {
 #else
