@@ -3,8 +3,8 @@ namespace {
     unsigned long lastID;
     unsigned long obtainID();
     const char* encrypt();
-    void prettyPrintEncrypted(const char* encrypted); // Prints <cypher "HEX HEX...">.
-    void prettyPrintSet(unsigned long id); // Prints <set #ID>.
+    void printEncrypted(const char* encrypted); // Prints <cypher "HEX HEX...">.
+    void printSet(unsigned long id); // Prints <set #ID>.
      
     
 }

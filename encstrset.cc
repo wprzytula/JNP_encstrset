@@ -4,9 +4,8 @@
 #include <unordered_set>
 #include <climits>
 #include <cassert>
+#include <iostream>
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #ifdef NDEBUG
     const bool debug = false;
 #else
@@ -15,33 +14,36 @@
 
 namespace {
     using encstrset = std::unordered_set<std::string>;
-    std::unordered_map<unsigned long, encstrset> sets;
 
-    // TODO: Podaje nastêpny numer id lub, je¿eli skoñczy siê zakres, szuka wolnego numeru.
+    std::unordered_map<unsigned long, encstrset>& sets() {
+        static std::unordered_map<unsigned long, encstrset> sets;
+        return sets;
+    }
+
     unsigned long obtainID() {
         static unsigned long lastGiven = -1;
         unsigned long proposedID = lastGiven + 1;
         while (proposedID != lastGiven) {
-            if (sets.find(proposedID) == sets.end()) {
+            if (sets().find(proposedID) == sets().end()) {
                 lastGiven = proposedID;
                 return proposedID;
             }
             ++proposedID;
         }
-        assert(false); // the scarcely probable case that there already exist MAX_ULONG maps
+        assert(false); // the scarcely probable case that there already exist MAX_ULONG sets
+        return 0;
     }
 
-    // Szyfruje value kluczem (niepustym) key.
+    //  Returns string containing <value> encrypted using <key>
+    //  if <key> is not NULL and not empty, else <value>.
     std::string encrypt(const char *value, const char *key) {
-        assert(value != nullptr);
+        if (debug) {
+            assert(value != nullptr);
+        }
         std::string result;
         int posVal = 0;
         char currVal = value[posVal];
-        if (key == nullptr) {
-            while (currVal != '\0') {
-                result += currVal;
-                currVal = value[++posVal];
-            }
+        if (key == nullptr || *key == '\0') {
             return value;
         }
         int posKey = 0;
@@ -59,8 +61,12 @@ namespace {
         return result;
     }
 
-    // Wypisuje encrypted w postaci "cypher "HEX HEX..."".
-    void printEncrypted(std::string encrypted) {
+    void printSet(unsigned long id) {
+        std::cerr << "set #" << id;
+    }
+
+    // Prints <encrypted> in form "cypher "HEX HEX..."".
+    void printEncrypted(const std::string& encrypted) {
         size_t size = encrypted.size();
         std::cerr << "cypher \"";
         for (size_t i = 0; i < size; i++) {
@@ -72,17 +78,7 @@ namespace {
         std::cerr << '"';
     }
 
-    // Wypisuje id w postaci "set #id".
-    void printSet(unsigned long id) {
-        std::cerr << "set #" << id;
-    }
-
-    void printDoesNotExist(unsigned long id) {
-        printSet(id);
-        std::cerr << " does not exist" << std::endl;
-    }
-
-    void printArguments(const char *) {}
+    void printArguments() {}
     void printArguments(unsigned long id) {
         std::cerr << id;
     }
@@ -108,191 +104,179 @@ namespace {
     }
 }
 
-#define printFunctionSelfInfo(args...) \
-    if (debug) {\
-        printCallSpecs(args);\
-        std::cerr << __func__ << ": ";\
+#define printFunctionSelfInfo() \
+    if (debug) { \
+        std::cerr << __func__ << ": "; \
     }
 
 #define initialValueCheck(value) \
-    if (value == nullptr) {\
-        if (debug) {\
-            std::cerr << "invalid value (NULL)" <<\
-            std::endl;\
-        }\
-    return false;\
+    if (value == nullptr) { \
+        if (debug) { \
+            std::cerr << "invalid value (NULL)" << \
+            std::endl; \
+        } \
+        return false; \
     }
 
-#define printCallSpecs(args...) std::cerr << __func__ << '(';\
-                                printArguments(args);\
-                                std::cerr << ')' << std::endl;
+#define printCallSpecs(args...) \
+    if (debug) { \
+        std::cerr << __func__ << '('; \
+        printArguments(args); \
+        std::cerr << ')' << std::endl; \
+    }
 
-extern "C" {
+#define printSetMessage(id, message) \
+    if (debug) { \
+       printSet(id); \
+       std::cerr << message << std::endl; \
+    }
+
+#define printSetCipherMessage(id, cipher, message) \
+    if (debug) { \
+        printSet(id); \
+        std::cerr << ", "; \
+        printEncrypted(encrypted); \
+        std::cerr << message << std::endl; \
+    }
+
+#define printWasCopied(cipher, srcId, dstId) \
+    if (debug) { \
+        printEncrypted(cipher); \
+        std::cerr << " copied from "; \
+        printSet(srcId); \
+        std::cerr << " to "; \
+        printSet(dstId); \
+        std::cerr << std::endl; \
+    }
+
+#define printCopiedAlreadyPresent(cipher, dstId) \
+    if (debug) { \
+        std::cerr << "copied "; \
+        printEncrypted(cipher); \
+        std::cerr << " was already present in "; \
+        printSet(dstId); \
+        std::cerr << std::endl; \
+    }
+
+namespace jnp1 {
     unsigned long encstrset_new() {
-        if (debug) {
-            printCallSpecs("");
-            std::cerr << __func__ << ": ";
-        }
+        printCallSpecs();
+        printFunctionSelfInfo();
         unsigned long id = obtainID();
-        sets[id];
-        if (debug) {
-            printSet(id);
-            std::cerr << " created" << std::endl;
-        }
+        sets()[id];
+        printSetMessage(id, " created");
         return id;
     }
 
     void encstrset_clear(unsigned long id) {
-        printFunctionSelfInfo(id);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
+        printCallSpecs(id);
+        printFunctionSelfInfo();
+        auto it = sets().find(id);
+        if (it != sets().end()) {
             it->second.clear();
-            if (debug) {
-                printSet(id);
-                std::cerr << " cleared" << std::endl;
-            }
-        } else if (debug) {
-            printDoesNotExist(id);
-        }
+            printSetMessage(id, " cleared");
+        } else printSetMessage(id, " does not exist");
     }
 
     void encstrset_delete(unsigned long id) {
-        printFunctionSelfInfo(id);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
-            sets.erase(it);
-            if (debug) {
-                printSet(id);
-                std::cerr << " deleted" << std::endl;
-            }
-        } else if (debug) {
-            printDoesNotExist(id);
-        }
+        printCallSpecs(id);
+        printFunctionSelfInfo();
+        auto it = sets().find(id);
+        if (it != sets().end()) {
+            sets().erase(it);
+            printSetMessage(id, " deleted");
+        } printSetMessage(id, " does not exist");
     }
 
     size_t encstrset_size(unsigned long id) {
-        printFunctionSelfInfo(id);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
-            if (debug) {
-                printSet(id);
-                std::cerr << " contains " << it->second.size() << " element(s)"
-                          << std::endl;
-            }
+        printCallSpecs(id);
+        printFunctionSelfInfo();
+        auto it = sets().find(id);
+        if (it != sets().end()) {
+            std::string message = " contains " + std::to_string(it->second.size()) + " element(s)";
+            printSetMessage(id, message);
             return it->second.size();
         } else {
-            if (debug) {
-                printDoesNotExist(id);
-
-                return 0;
-            }
+            printSetMessage(id, " does not exist");
+            return 0;
         }
     }
 
     bool encstrset_insert(unsigned long id, const char *value, const char *key) {
-        printFunctionSelfInfo(id, value, key);
+        printCallSpecs(id, value, key);
+        printFunctionSelfInfo();
         initialValueCheck(value);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
+        auto it = sets().find(id);
+        if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
             if (it->second.find(encrypted) == it->second.end()) {
                 it->second.insert(encrypted);
-                if (debug) {
-                    printSet(id);
-                    std::cerr << ", ";
-                    printEncrypted(encrypted);
-                    std::cerr << " inserted" << std::endl;
-                }
+                printSetCipherMessage(id, encrypted, " inserted");
                 return true;
             }
+            printSetCipherMessage(id, encrypted, " was already present");
+            return false;
         }
-        printDoesNotExist(id);
+        printSetMessage(id, " does not exist");
         return false;
     }
 
     bool encstrset_remove(unsigned long id, const char *value, const char *key) {
-        printFunctionSelfInfo(id, value, key);
+        printCallSpecs(id, value, key);
+        printFunctionSelfInfo();
         initialValueCheck(value);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
+        auto it = sets().find(id);
+        if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
             if (it->second.find(encrypted) != it->second.end()) {
                 it->second.erase(encrypted);
-                if (debug) {
-                    printSet(id);
-                    std::cerr << ", ";
-                    printEncrypted(encrypted);
-                    std::cerr << " removed" << std::endl;
-                }
+                printSetCipherMessage(id, encrypted, " removed");
                 return true;
             }
+            printSetCipherMessage(id, encrypted, " was not present");
+            return false;
         }
-        printDoesNotExist(id);
+        printSetMessage(id, " does not exist");
         return false;
     }
 
     bool encstrset_test(unsigned long id, const char *value, const char *key) {
-        printFunctionSelfInfo(id, value, key);
+        printCallSpecs(id, value, key);
+        printFunctionSelfInfo();
         initialValueCheck(value);
-        auto it = sets.find(id);
-        if (it != sets.end()) {
+        auto it = sets().find(id);
+        if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
-            if (debug) {
-                printSet(id);
-                std::cerr << ", ";
-                printEncrypted(encrypted);
-            }
             if (it->second.find(encrypted) != it->second.end()) {
-                if (debug) {
-                    std::cerr << " is present" << std::endl;
-                }
+                printSetCipherMessage(id, encrypted, " is present");
                 return true;
             }
-            if (debug) {
-                std::cerr << " is not present" << std::endl;
-            }
+            printSetCipherMessage(id, encrypted, " is not present");
             return false;
         }
-        printDoesNotExist(id);
+        printSetMessage(id, " does not exist");
         return false;
     }
 
     void encstrset_copy(unsigned long srcId, unsigned long dstId) {
         printCallSpecs(srcId, dstId);
-        auto srcIt = sets.find(srcId), dstIt = sets.find(dstId);
-        if (srcIt == sets.end()) {
-            std::cerr << __func__ << ": ";
-            printDoesNotExist(srcId);
+        auto srcIt = sets().find(srcId), dstIt = sets().find(dstId);
+        if (srcIt == sets().end()) {
+            printFunctionSelfInfo();
+            printSetMessage(srcId, " does not exist");
         }
-        else if (dstIt == sets.end()) {
-            std::cerr << __func__ << ": ";
-            printDoesNotExist(dstId);
+        else if (dstIt == sets().end()) {
+            printFunctionSelfInfo();
+            printSetMessage(dstId, " does not exist");
         }
         else {
             for (auto it = srcIt->second.begin(); it != srcIt->second.end(); ++it) {
-                if (debug) {
-                    std::cerr << __func__ << ": ";
-                }
+                printFunctionSelfInfo();
                 if (dstIt->second.find(*it) == dstIt->second.end()) {
                     dstIt->second.insert(*it);
-                    if (debug) {
-                        printEncrypted(*it);
-                        std::cerr << " copied from ";
-                        printSet(srcId);
-                        std::cerr << " to ";
-                        printSet(dstId);
-                        std::cerr << std::endl;
-                    }
-                } else if (debug) {
-                    std::cerr << "copied ";
-                    printEncrypted(*it);
-                    std::cerr << " was already present in ";
-                    printSet(dstId);
-                    std::cerr << std::endl;
-                }
+                    printWasCopied(*it, srcId, dstId);
+                } else printCopiedAlreadyPresent(*it, dstId);
             }
         }
     }
 }
-
-#pragma clang diagnostic pop
