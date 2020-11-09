@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <climits>
 #include <cassert>
+#include <iostream>
 
 #ifdef NDEBUG
     const bool debug = false;
@@ -30,6 +31,7 @@ namespace {
             ++proposedID;
         }
         assert(false); // the scarcely probable case that there already exist MAX_ULONG sets
+        return 0;
     }
 
     //  Returns string containing <value> encrypted using <key>
@@ -58,7 +60,6 @@ namespace {
         }
         return result;
     }
-
 
     void printSet(unsigned long id) {
         std::cerr << "set #" << id;
@@ -103,9 +104,8 @@ namespace {
     }
 }
 
-#define printFunctionSelfInfo(args...) \
+#define printFunctionSelfInfo() \
     if (debug) { \
-        printCallSpecs(args); \
         std::cerr << __func__ << ": "; \
     }
 
@@ -119,9 +119,11 @@ namespace {
     }
 
 #define printCallSpecs(args...) \
-    std::cerr << __func__ << '('; \
-    printArguments(args); \
-    std::cerr << ')' << std::endl;
+    if (debug) { \
+        std::cerr << __func__ << '('; \
+        printArguments(args); \
+        std::cerr << ')' << std::endl; \
+    }
 
 #define printSetMessage(id, message) \
     if (debug) { \
@@ -137,9 +139,28 @@ namespace {
         std::cerr << message << std::endl; \
     }
 
+#define printWasCopied(cipher, srcId, dstId) \
+    if (debug) { \
+        printEncrypted(cipher); \
+        std::cerr << " copied from "; \
+        printSet(srcId); \
+        std::cerr << " to "; \
+        printSet(dstId); \
+        std::cerr << std::endl; \
+    }
+
+#define printCopiedAlreadyPresent(cipher, dstId) \
+    if (debug) { \
+        std::cerr << "copied "; \
+        printEncrypted(cipher); \
+        std::cerr << " was already present in "; \
+        printSet(dstId); \
+        std::cerr << std::endl; \
+    }
 
 namespace jnp1 {
     unsigned long encstrset_new() {
+        printCallSpecs();
         printFunctionSelfInfo();
         unsigned long id = obtainID();
         sets()[id];
@@ -148,7 +169,8 @@ namespace jnp1 {
     }
 
     void encstrset_clear(unsigned long id) {
-        printFunctionSelfInfo(id);
+        printCallSpecs(id);
+        printFunctionSelfInfo();
         auto it = sets().find(id);
         if (it != sets().end()) {
             it->second.clear();
@@ -157,7 +179,8 @@ namespace jnp1 {
     }
 
     void encstrset_delete(unsigned long id) {
-        printFunctionSelfInfo(id);
+        printCallSpecs(id);
+        printFunctionSelfInfo();
         auto it = sets().find(id);
         if (it != sets().end()) {
             sets().erase(it);
@@ -166,14 +189,12 @@ namespace jnp1 {
     }
 
     size_t encstrset_size(unsigned long id) {
-        printFunctionSelfInfo(id);
+        printCallSpecs(id);
+        printFunctionSelfInfo();
         auto it = sets().find(id);
         if (it != sets().end()) {
-            if (debug) {
-                printSet(id);
-                std::cerr << " contains " << it->second.size() << " element(s)"
-                          << std::endl;
-            }
+            std::string message = " contains " + std::to_string(it->second.size()) + " element(s)";
+            printSetMessage(id, message);
             return it->second.size();
         } else {
             printSetMessage(id, " does not exist");
@@ -182,7 +203,8 @@ namespace jnp1 {
     }
 
     bool encstrset_insert(unsigned long id, const char *value, const char *key) {
-        printFunctionSelfInfo(id, value, key);
+        printCallSpecs(id, value, key);
+        printFunctionSelfInfo();
         initialValueCheck(value);
         auto it = sets().find(id);
         if (it != sets().end()) {
@@ -200,7 +222,8 @@ namespace jnp1 {
     }
 
     bool encstrset_remove(unsigned long id, const char *value, const char *key) {
-        printFunctionSelfInfo(id, value, key);
+        printCallSpecs(id, value, key);
+        printFunctionSelfInfo();
         initialValueCheck(value);
         auto it = sets().find(id);
         if (it != sets().end()) {
@@ -218,25 +241,17 @@ namespace jnp1 {
     }
 
     bool encstrset_test(unsigned long id, const char *value, const char *key) {
-        printFunctionSelfInfo(id, value, key);
+        printCallSpecs(id, value, key);
+        printFunctionSelfInfo();
         initialValueCheck(value);
         auto it = sets().find(id);
         if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
-            if (debug) {
-                printSet(id);
-                std::cerr << ", ";
-                printEncrypted(encrypted);
-            }
             if (it->second.find(encrypted) != it->second.end()) {
-                if (debug) {
-                    std::cerr << " is present" << std::endl;
-                }
+                printSetCipherMessage(id, encrypted, " is present");
                 return true;
             }
-            if (debug) {
-                std::cerr << " is not present" << std::endl;
-            }
+            printSetCipherMessage(id, encrypted, " is not present");
             return false;
         }
         printSetMessage(id, " does not exist");
@@ -244,36 +259,23 @@ namespace jnp1 {
     }
 
     void encstrset_copy(unsigned long srcId, unsigned long dstId) {
-        printFunctionSelfInfo()
+        printCallSpecs(srcId, dstId);
         auto srcIt = sets().find(srcId), dstIt = sets().find(dstId);
         if (srcIt == sets().end()) {
+            printFunctionSelfInfo();
             printSetMessage(srcId, " does not exist");
         }
         else if (dstIt == sets().end()) {
+            printFunctionSelfInfo();
             printSetMessage(dstId, " does not exist");
         }
         else {
             for (auto it = srcIt->second.begin(); it != srcIt->second.end(); ++it) {
-                if (debug && it != srcIt->second.begin()) {
-                    std::cerr << __func__ << ": ";
-                }
+                printFunctionSelfInfo();
                 if (dstIt->second.find(*it) == dstIt->second.end()) {
                     dstIt->second.insert(*it);
-                    if (debug) {
-                        printEncrypted(*it);
-                        std::cerr << " copied from ";
-                        printSet(srcId);
-                        std::cerr << " to ";
-                        printSet(dstId);
-                        std::cerr << std::endl;
-                    }
-                } else if (debug) {
-                    std::cerr << "copied ";
-                    printEncrypted(*it);
-                    std::cerr << " was already present in ";
-                    printSet(dstId);
-                    std::cerr << std::endl;
-                }
+                    printWasCopied(*it, srcId, dstId);
+                } else printCopiedAlreadyPresent(*it, dstId);
             }
         }
     }
