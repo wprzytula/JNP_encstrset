@@ -77,6 +77,7 @@ namespace {
                 std::cerr << ' ';
             }
         }
+        std::cerr.copyfmt(std::ios(NULL));  // Resets cerr flags to default.
         std::cerr << '"';
     }
 
