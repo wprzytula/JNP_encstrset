@@ -70,9 +70,9 @@ namespace {
     // Prints <encrypted> in form "cypher "HEX HEX..."".
     void printEncrypted(const std::string& encrypted) {
         size_t size = encrypted.size();
-        std::cerr << "cypher \"";
+        std::cerr << "cypher \"" << std::setfill('0') << std::uppercase << std::hex;
         for (size_t i = 0; i < size; i++) {
-            std::cerr << std::setw(2) << std::setfill('0') << std::uppercase << std::hex << (int)encrypted[i];
+            std::cerr << std::setw(2) << (int)encrypted[i];
             if (i + 1 < size) {
                 std::cerr << ' ';
             }
