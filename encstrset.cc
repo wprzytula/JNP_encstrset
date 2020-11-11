@@ -16,7 +16,7 @@
 namespace {
     using encstrset = std::unordered_set<std::string>;
 
-    std::unordered_map<unsigned long, encstrset>& sets() {
+    std::unordered_map<unsigned long, encstrset> &sets() {
         static std::unordered_map<unsigned long, encstrset> sets;
         return sets;
     }
@@ -51,7 +51,7 @@ namespace {
         int posKey = 0;
         char currKey = key[posKey];
         while (currVal != '\0') {
-            char encrypted = currVal ^ currKey;
+            char encrypted = currVal ^currKey;
             result += encrypted;
             currVal = value[++posVal];
             currKey = key[++posKey];
@@ -68,11 +68,12 @@ namespace {
     }
 
     // Prints <encrypted> in form "cypher "HEX HEX..."".
-    void printEncrypted(const std::string& encrypted) {
+    void printEncrypted(const std::string &encrypted) {
         size_t size = encrypted.size();
-        std::cerr << "cypher \"" << std::setfill('0') << std::uppercase << std::hex;
+        std::cerr << "cypher \"" << std::setfill('0') << std::uppercase
+                  << std::hex;
         for (size_t i = 0; i < size; i++) {
-            std::cerr << std::setw(2) << (int)encrypted[i];
+            std::cerr << std::setw(2) << (int) encrypted[i];
             if (i + 1 < size) {
                 std::cerr << ' ';
             }
@@ -83,29 +84,29 @@ namespace {
 
     // Prints various amounts of arguments.
     void printArguments() {}
+
     void printArguments(unsigned long id) {
         std::cerr << id;
     }
+
     void printArguments(unsigned long id1, unsigned long id2) {
         std::cerr << id1 << ", " << id2;
     }
+
     void printArguments(unsigned long id, const char *value, const char *key) {
         std::cerr << id << ", ";
         if (value == nullptr) {
             std::cerr << "NULL";
-        }
-        else {
+        } else {
             std::cerr << '"' << value << '"';
         }
         std::cerr << ", ";
         if (key == nullptr) {
             std::cerr << "NULL";
-        }
-        else {
+        } else {
             std::cerr << '"' << key << '"';
         }
     }
-}
 
 // Macros for printing debug information.
 #define printFunctionSelfInfo() \
@@ -161,11 +162,13 @@ namespace {
         printSet(dstId); \
         std::cerr << std::endl; \
     }
+}
 
 namespace jnp1 {
     unsigned long encstrset_new() {
         printCallSpecs();
         printFunctionSelfInfo();
+
         unsigned long id = obtainID();
         sets()[id];
         printSetMessage(id, " created");
@@ -175,33 +178,43 @@ namespace jnp1 {
     void encstrset_clear(unsigned long id) {
         printCallSpecs(id);
         printFunctionSelfInfo();
+
         auto it = sets().find(id);
         if (it != sets().end()) {
             it->second.clear();
             printSetMessage(id, " cleared");
-        } else printSetMessage(id, " does not exist");
+        }
+        else {
+            printSetMessage(id, " does not exist")
+        }
     }
 
     void encstrset_delete(unsigned long id) {
         printCallSpecs(id);
         printFunctionSelfInfo();
+
         auto it = sets().find(id);
         if (it != sets().end()) {
             sets().erase(it);
             printSetMessage(id, " deleted");
-        } else printSetMessage(id, " does not exist");
+        }
+        else {
+            printSetMessage(id, " does not exist");
+        }
     }
 
     size_t encstrset_size(unsigned long id) {
         printCallSpecs(id);
         printFunctionSelfInfo();
+
         auto it = sets().find(id);
         if (it != sets().end()) {
             std::string message =
                     " contains " + std::to_string(it->second.size()) + " element(s)";
             printSetMessage(id, message);
             return it->second.size();
-        } else {
+        }
+        else {
             printSetMessage(id, " does not exist");
             return 0;
         }
@@ -211,6 +224,7 @@ namespace jnp1 {
         printCallSpecs(id, value, key);
         printFunctionSelfInfo();
         initialValueCheck(value);
+
         auto it = sets().find(id);
         if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
@@ -230,6 +244,7 @@ namespace jnp1 {
         printCallSpecs(id, value, key);
         printFunctionSelfInfo();
         initialValueCheck(value);
+
         auto it = sets().find(id);
         if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
@@ -249,6 +264,7 @@ namespace jnp1 {
         printCallSpecs(id, value, key);
         printFunctionSelfInfo();
         initialValueCheck(value);
+
         auto it = sets().find(id);
         if (it != sets().end()) {
             std::string encrypted = encrypt(value, key);
@@ -265,22 +281,27 @@ namespace jnp1 {
 
     void encstrset_copy(unsigned long srcId, unsigned long dstId) {
         printCallSpecs(srcId, dstId);
+
         auto srcIt = sets().find(srcId), dstIt = sets().find(dstId);
         if (srcIt == sets().end()) {
             printFunctionSelfInfo();
             printSetMessage(srcId, " does not exist");
+            return;
         }
-        else if (dstIt == sets().end()) {
+        if (dstIt == sets().end()) {
             printFunctionSelfInfo();
             printSetMessage(dstId, " does not exist");
+            return;
         }
-        else {
-            for (auto it = srcIt->second.begin(); it != srcIt->second.end(); ++it) {
-                printFunctionSelfInfo();
-                if (dstIt->second.find(*it) == dstIt->second.end()) {
-                    dstIt->second.insert(*it);
-                    printWasCopied(*it, srcId, dstId);
-                } else printCopiedAlreadyPresent(*it, dstId);
+
+        for (auto it = srcIt->second.begin(); it != srcIt->second.end(); ++it) {
+            printFunctionSelfInfo();
+            if (dstIt->second.find(*it) == dstIt->second.end()) {
+                dstIt->second.insert(*it);
+                printWasCopied(*it, srcId, dstId);
+            }
+            else {
+                printCopiedAlreadyPresent(*it, dstId);
             }
         }
     }
