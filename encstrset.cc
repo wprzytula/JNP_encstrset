@@ -77,7 +77,7 @@ namespace {
                 std::cerr << ' ';
             }
         }
-        std::cerr.copyfmt(std::ios(NULL));  // Resets cerr flags to default.
+        std::cerr.copyfmt(std::ios(nullptr));  // Resets cerr flags to default.
         std::cerr << '"';
     }
 
@@ -197,7 +197,8 @@ namespace jnp1 {
         printFunctionSelfInfo();
         auto it = sets().find(id);
         if (it != sets().end()) {
-            std::string message = " contains " + std::to_string(it->second.size()) + " element(s)";
+            std::string message =
+                    " contains " + std::to_string(it->second.size()) + " element(s)";
             printSetMessage(id, message);
             return it->second.size();
         } else {
