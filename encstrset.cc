@@ -73,7 +73,7 @@ namespace {
         std::cerr << "cypher \"" << std::setfill('0') << std::uppercase
                   << std::hex;
         for (size_t i = 0; i < size; i++) {
-            std::cerr << std::setw(2) << (int) encrypted[i];
+            std::cerr << std::setw(2) << (unsigned)(unsigned char) encrypted[i];
             if (i + 1 < size) {
                 std::cerr << ' ';
             }
